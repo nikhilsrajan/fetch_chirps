@@ -5,6 +5,7 @@ import tqdm
 import affine
 import rasterio
 import multiprocessing as mp
+import functools
 
 import chcfetch.chcfetch as chcfetch
 import rsutils.utils as utils
@@ -161,15 +162,22 @@ def check_if_corrupted(tif_filepath):
 
 
 def add_tif_corruption_cols(
-    row, 
+    catalogue_df:pd.DataFrame, 
     tif_filepath_col:str = TIF_FILEPATH_COL,
     is_corrupted_col:str = IS_CORRUPTED_COL,
     type_of_corruption_col:str = TYPE_OF_CORRUPTION_COL,
+    njobs:int=mp.cpu_count() - 2,
 ):
-    is_corrupted, type_of_corruption = check_if_corrupted(row[tif_filepath_col])
-    row[is_corrupted_col] = is_corrupted
-    row[type_of_corruption_col] = type_of_corruption
-    return row
+    with mp.Pool(njobs) as p:
+        list_corrupt_stats = list(tqdm.tqdm(
+            p.imap(check_if_corrupted, catalogue_df[tif_filepath_col]), 
+            total=catalogue_df.shape[0])
+        )
+
+    is_corrupted_series, type_of_corruption_series = zip(*list_corrupt_stats)
+    catalogue_df[is_corrupted_col] = is_corrupted_series
+    catalogue_df[type_of_corruption_col] = type_of_corruption_series
+    return catalogue_df
 
 
 def add_year_day_from_date(
@@ -208,13 +216,8 @@ def fetch_missing_chirps_v2p0_p05_files(
     )
 
     print('Checking how many files in the local CHIRPS catalogue are corrupted.')
-    geoglam_chirps_catalogue_df = \
-    geoglam_chirps_catalogue_df.progress_apply(
-        lambda row: add_tif_corruption_cols(
-            row=row, 
-            tif_filepath_col=tif_filepath_col,
-        ), 
-        axis=1,
+    geoglam_chirps_catalogue_df = add_tif_corruption_cols(
+        catalogue_df = geoglam_chirps_catalogue_df,
     )
     n_corrupted = geoglam_chirps_catalogue_df[IS_CORRUPTED_COL].sum()
     print(f'Number of corrupted tifs: {n_corrupted}')
