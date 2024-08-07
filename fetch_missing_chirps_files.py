@@ -51,7 +51,7 @@ def create_catalogue_df(
     filename_parser, 
     ignore_extensions:list[str] = None,
     keep_extensions:list[str]=['.tif'],
-    tif_filepath_col:str = TIF_FILEPATH_COL
+    tif_filepath_col:str = TIF_FILEPATH_COL,
 ):
     data = {TIF_FILEPATH_COL: []}
     for filepath in utils.get_all_files_in_folder(
@@ -81,6 +81,13 @@ def generate_geoglam_chirps_catalogue_df(
         keep_extensions = ['.tif'],
         tif_filepath_col = tif_filepath_col,
     )
+
+    if catalogue_df.shape[0] == 0:
+        catalogue_df = pd.DataFrame(data = {
+            YEAR_COL : [],
+            DAY_COL : [],
+            tif_filepath_col : [],
+        })
 
     catalogue_df[FILETYPE_COL] = TIF_EXT
 
@@ -113,7 +120,14 @@ def generate_chc_chirps_catalogue_df(
         tif_filepath_col = tif_filepath_col,
     )
 
-    catalogue_df[FILETYPE_COL] = TIF_EXT
+    if catalogue_df.shape[0] == 0:
+        catalogue_df = pd.DataFrame(data = {
+            YEAR_COL : [],
+            DAY_COL : [],
+            tif_filepath_col : [],
+        })
+
+    catalogue_df[FILETYPE_COL] = TIF_GZ_EXT
 
     catalogue_df = \
     catalogue_df.sort_values(
@@ -230,11 +244,12 @@ def fetch_missing_chirps_v2p0_p05_files(
 
     valid_downloads_df = geoglam_chirps_catalogue_df[~geoglam_chirps_catalogue_df[IS_CORRUPTED_COL]]
 
+    valid_downloads_df = pd.concat([
+        valid_downloads_df, chc_chirps_catalogue_df
+    ]).reset_index(drop=True)
+
     pending_downloads_df = chc_fetch_paths_df[
-        ~chc_fetch_paths_df[DATE_COL].isin(geoglam_chirps_catalogue_df[
-            ~geoglam_chirps_catalogue_df[IS_CORRUPTED_COL]
-        ][DATE_COL]) &
-        ~chc_fetch_paths_df[DATE_COL].isin(chc_chirps_catalogue_df[DATE_COL])
+        ~chc_fetch_paths_df[DATE_COL].isin(valid_downloads_df[DATE_COL])
     ]
 
     keep_cols = [DATE_COL, YEAR_COL, DAY_COL, tif_filepath_col, FILETYPE_COL]
