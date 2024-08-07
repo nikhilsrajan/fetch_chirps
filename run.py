@@ -1,6 +1,7 @@
 import sys
 import geopandas as gpd
 import multiprocessing as mp
+import time
 
 import chcfetch.constants
 import fetch_missing_chirps_files as fmcf
@@ -57,6 +58,7 @@ if __name__ == '__main__':
     - export_filepath
     - working_folderpath
     """
+    start_time = time.time()
 
     roi_shapefile, start_year, end_year, \
     geoglam_chirps_data_folderpath, \
@@ -104,4 +106,8 @@ if __name__ == '__main__':
         fmcf.DAY_COL,
         VAL_COl,
     ]].to_csv(export_filepath, index=False)
+
+    end_time = time.time()
+
+    print(f"--- {round(end_time - start_time, 2)} seconds ---")
 
