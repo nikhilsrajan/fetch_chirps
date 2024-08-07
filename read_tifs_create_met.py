@@ -24,15 +24,18 @@ class LoadTIFMethod:
 def coregister_and_maybe_crop(
     tif_filepath:str,
     reference_tif_filepath:str,
+    working_folderpath:str = None,
     resampling=rasterio.merge.Resampling.nearest,
     nodata=None,
     shapes_gdf:gpd.GeoDataFrame = None,
 ):
-    _folderpath, _filename = os.path.split(tif_filepath)
+    os.makedirs(working_folderpath, exist_ok=True)
+
+    _filename = os.path.split(tif_filepath)[1]
     zero_tif_filepath = utils.add_epochs_prefix(
         filepath = reference_tif_filepath,
         prefix = f'zero+{_filename}_',
-        new_folderpath = _folderpath,
+        new_folderpath = working_folderpath,
     )
 
     utils.create_zero_tif(
@@ -43,6 +46,7 @@ def coregister_and_maybe_crop(
     coregistered_tif_filepath = utils.add_epochs_prefix(
         filepath = tif_filepath,
         prefix = f'coregistered+{_filename}_',
+        new_folderpath = working_folderpath
     )
 
     utils.coregister(
@@ -71,6 +75,7 @@ def coregister_and_maybe_crop(
 
 def load_tif(
     tif_filepath:str,
+    working_folderpath:str = None,
     shapes_gdf:gpd.GeoDataFrame = None,
     reference_tif_filepath:str = None,
     method:str = LoadTIFMethod.READ_NO_CROP,
@@ -101,6 +106,7 @@ def load_tif(
             resampling = resampling,
             nodata = nodata,
             shapes_gdf = shapes_gdf,
+            working_folderpath = working_folderpath,
         )
 
     return out_image, out_meta
@@ -118,6 +124,7 @@ def read_tif_get_agg_value(
     method:str,
     aggregation:str,
     shapes_gdf:gpd.GeoDataFrame,
+    working_folderpath:str,
     reference_tif_filepath:str=None,
 ):
     aggregation_func = AGGREGATION_DICT[aggregation]
@@ -137,6 +144,7 @@ def read_tif_get_agg_value(
         shapes_gdf = shapes_gdf,
         reference_tif_filepath = reference_tif_filepath,
         method = method,
+        working_folderpath = working_folderpath,
     )
 
     value = aggregation_func(out_image)
@@ -153,12 +161,14 @@ def read_tif_get_agg_value(
 def read_tif_get_agg_value_by_tuple(
     filepath_filetype_method:tuple[str,str,str],
     shapes_gdf:gpd.gpd.geopandas,
+    working_folderpath:str,
     aggregation:str = 'mean',
     reference_tif_filepath:str = None,
 ):
     filepath, filetype, method = filepath_filetype_method
     return read_tif_get_agg_value(
         filepath = filepath,
+        working_folderpath = working_folderpath,
         filetype = filetype,
         method = method,
         aggregation = aggregation,
@@ -171,6 +181,7 @@ def read_tifs_get_agg_value(
     catalogue_df:pd.DataFrame,
     shapes_gdf:gpd.geopandas,
     val_col:str,
+    working_folderpath:str,
     method_col:str = METHOD_COL,
     tif_filepath_col:str = fmcf.TIF_FILEPATH_COL,
     filetype_col:str = fmcf.FILETYPE_COL,
@@ -188,6 +199,7 @@ def read_tifs_get_agg_value(
         shapes_gdf = shapes_gdf,
         aggregation = aggregation,
         reference_tif_filepath = reference_tif_filepath,
+        working_folderpath = working_folderpath,
     )
 
     filepath_filetype_method_tuples = list(zip(

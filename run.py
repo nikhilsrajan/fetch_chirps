@@ -17,12 +17,14 @@ def parse_args():
     aggregation = sys.argv[7]
     njobs = int(sys.argv[8])
     export_filepath = sys.argv[9]
+    working_folderpath = sys.argv[10]
 
     return roi_shapefile, start_year, end_year, \
         geoglam_chirps_data_folderpath, \
         chc_chirps_v2_0_p05_download_folderpath, \
         reference_tif_filepath, \
-        aggregation, njobs, export_filepath
+        aggregation, njobs, export_filepath, \
+        working_folderpath
 
 
 def check_if_any_geom_within_chirps_bounds(
@@ -53,6 +55,7 @@ if __name__ == '__main__':
     - aggregation
     - njobs
     - export_filepath
+    - working_folderpath
     """
 
     roi_shapefile, start_year, end_year, \
@@ -60,6 +63,7 @@ if __name__ == '__main__':
     chc_chirps_v2_0_p05_download_folderpath, \
     reference_tif_filepath, \
     aggregation, njobs, export_filepath, \
+    working_folderpath, \
     = parse_args()
 
     shapes_gdf = gpd.read_file(roi_shapefile)
@@ -91,6 +95,7 @@ if __name__ == '__main__':
         reference_tif_filepath = reference_tif_filepath,
         aggregation = aggregation,
         njobs = njobs,
+        working_folderpath = working_folderpath,
     )
 
     updated_catalogue_df[[
