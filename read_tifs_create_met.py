@@ -28,10 +28,11 @@ def coregister_and_maybe_crop(
     nodata=None,
     shapes_gdf:gpd.GeoDataFrame = None,
 ):
-    filename = os.path.split(tif_filepath)[1]
+    _folderpath, _filename = os.path.split(tif_filepath)
     zero_tif_filepath = utils.add_epochs_prefix(
         filepath = reference_tif_filepath,
-        prefix = f'zero+{filename}_',
+        prefix = f'zero+{_filename}_',
+        new_folderpath = _folderpath,
     )
 
     utils.create_zero_tif(
@@ -41,7 +42,7 @@ def coregister_and_maybe_crop(
 
     coregistered_tif_filepath = utils.add_epochs_prefix(
         filepath = tif_filepath,
-        prefix = f'coregistered+{filename}_',
+        prefix = f'coregistered+{_filename}_',
     )
 
     utils.coregister(
