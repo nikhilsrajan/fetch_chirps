@@ -1,0 +1,6 @@
+[submodule "chcfetch"]
+	path = chcfetch
+	url = https://github.com/nikhilsrajan/chcfetch.git
+[submodule "rsutils"]
+	path = rsutils
+	url = https://github.com/nikhilsrajan/rsutils.git
