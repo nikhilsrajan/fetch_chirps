@@ -83,27 +83,23 @@ def generate_geoglam_chirps_catalogue_df(
     )
 
     if catalogue_df.shape[0] == 0:
-        catalogue_df = pd.DataFrame(data = {
-            YEAR_COL : [],
-            DAY_COL : [],
-            tif_filepath_col : [],
-        })
+        catalogue_df = pd.DataFrame()
+    else:
+        catalogue_df[FILETYPE_COL] = TIF_EXT
 
-    catalogue_df[FILETYPE_COL] = TIF_EXT
+        catalogue_df = \
+        catalogue_df.sort_values(
+            by=[YEAR_COL, DAY_COL]
+        ).reset_index(drop=True)
 
-    catalogue_df = \
-    catalogue_df.sort_values(
-        by=[YEAR_COL, DAY_COL]
-    ).reset_index(drop=True)
+        catalogue_df = \
+        catalogue_df[catalogue_df[YEAR_COL].isin(years)]
 
-    catalogue_df = \
-    catalogue_df[catalogue_df[YEAR_COL].isin(years)]
-
-    catalogue_df[DATE_COL] = catalogue_df.apply(
-        lambda row: datetime.datetime(year=row[YEAR_COL], month=1, day=1) \
-            + datetime.timedelta(days=row[DAY_COL] - 1),
-        axis=1
-    )
+        catalogue_df[DATE_COL] = catalogue_df.apply(
+            lambda row: datetime.datetime(year=row[YEAR_COL], month=1, day=1) \
+                + datetime.timedelta(days=row[DAY_COL] - 1),
+            axis=1
+        )
 
     return catalogue_df
 
@@ -121,27 +117,23 @@ def generate_chc_chirps_catalogue_df(
     )
 
     if catalogue_df.shape[0] == 0:
-        catalogue_df = pd.DataFrame(data = {
-            YEAR_COL : [],
-            DAY_COL : [],
-            tif_filepath_col : [],
-        })
+        catalogue_df = pd.DataFrame()
+    else:
+        catalogue_df[FILETYPE_COL] = TIF_GZ_EXT
 
-    catalogue_df[FILETYPE_COL] = TIF_GZ_EXT
+        catalogue_df = \
+        catalogue_df.sort_values(
+            by=[YEAR_COL, DAY_COL]
+        ).reset_index(drop=True)
 
-    catalogue_df = \
-    catalogue_df.sort_values(
-        by=[YEAR_COL, DAY_COL]
-    ).reset_index(drop=True)
+        catalogue_df = \
+        catalogue_df[catalogue_df[YEAR_COL].isin(years)]
 
-    catalogue_df = \
-    catalogue_df[catalogue_df[YEAR_COL].isin(years)]
-
-    catalogue_df[DATE_COL] = catalogue_df.apply(
-        lambda row: datetime.datetime(year=row[YEAR_COL], month=1, day=1) \
-            + datetime.timedelta(days=row[DAY_COL] - 1),
-        axis=1
-    )
+        catalogue_df[DATE_COL] = catalogue_df.apply(
+            lambda row: datetime.datetime(year=row[YEAR_COL], month=1, day=1) \
+                + datetime.timedelta(days=row[DAY_COL] - 1),
+            axis=1
+        )
 
     return catalogue_df
 
