@@ -122,6 +122,7 @@ def read_tif_get_agg_value(
     filepath:str,
     filetype:str,
     method:str,
+    multiplier:float,
     aggregation:str,
     shapes_gdf:gpd.GeoDataFrame,
     working_folderpath:str,
@@ -147,6 +148,8 @@ def read_tif_get_agg_value(
         working_folderpath = working_folderpath,
     )
 
+    out_image = out_image * multiplier
+
     value = aggregation_func(out_image)
 
     del out_image, out_meta
@@ -159,18 +162,19 @@ def read_tif_get_agg_value(
 
 
 def read_tif_get_agg_value_by_tuple(
-    filepath_filetype_method:tuple[str,str,str],
+    filepath_filetype_method_multiplier:tuple[str,str,str,float],
     shapes_gdf:gpd.gpd.geopandas,
     working_folderpath:str,
     aggregation:str = 'mean',
     reference_tif_filepath:str = None,
 ):
-    filepath, filetype, method = filepath_filetype_method
+    filepath, filetype, method, multiplier = filepath_filetype_method_multiplier
     return read_tif_get_agg_value(
         filepath = filepath,
         working_folderpath = working_folderpath,
         filetype = filetype,
         method = method,
+        multiplier = multiplier,
         aggregation = aggregation,
         shapes_gdf = shapes_gdf,
         reference_tif_filepath = reference_tif_filepath,
@@ -185,6 +189,7 @@ def read_tifs_get_agg_value(
     method_col:str = METHOD_COL,
     tif_filepath_col:str = fmcf.TIF_FILEPATH_COL,
     filetype_col:str = fmcf.FILETYPE_COL,
+    multiplier_col:str = fmcf.MULTIPLIER_COL,
     aggregation:str = 'mean',
     reference_tif_filepath:str = None,
     njobs:int = mp.cpu_count() - 2,
@@ -202,19 +207,20 @@ def read_tifs_get_agg_value(
         working_folderpath = working_folderpath,
     )
 
-    filepath_filetype_method_tuples = list(zip(
+    filepath_filetype_method_multiplier_tuples = list(zip(
         catalogue_df[tif_filepath_col],
         catalogue_df[filetype_col],
-        catalogue_df[method_col]
+        catalogue_df[method_col],
+        catalogue_df[multiplier_col],
     ))
 
     with mp.Pool(njobs) as p:
         values = list(tqdm.tqdm(
             p.imap(
                 read_tif_get_agg_value_by_tuple_partial, 
-                filepath_filetype_method_tuples,
+                filepath_filetype_method_multiplier_tuples,
             ), 
-            total=len(filepath_filetype_method_tuples)
+            total=len(filepath_filetype_method_multiplier_tuples)
         ))
         
     updated_catalogue_df[val_col] = values

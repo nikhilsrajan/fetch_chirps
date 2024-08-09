@@ -5,7 +5,6 @@ import tqdm
 import affine
 import rasterio
 import multiprocessing as mp
-import functools
 
 import chcfetch.chcfetch as chcfetch
 import rsutils.utils as utils
@@ -24,6 +23,7 @@ YEAR_COL = 'year'
 DAY_COL = 'day'
 IS_CORRUPTED_COL = 'is_corrupted'
 TYPE_OF_CORRUPTION_COL = 'type_of_corruption'
+MULTIPLIER_COL = 'multiplier'
 
 
 def geoglam_chirps_filename_parser(filename:str):
@@ -102,6 +102,8 @@ def generate_geoglam_chirps_catalogue_df(
         catalogue_df = \
         catalogue_df[catalogue_df[YEAR_COL].isin(years)]
 
+        catalogue_df[MULTIPLIER_COL] = 1 / 100 # geoprepare multiplies tiff with 100 to convert to integer
+
     return catalogue_df
 
 
@@ -135,6 +137,8 @@ def generate_chc_chirps_catalogue_df(
 
         catalogue_df = \
         catalogue_df[catalogue_df[YEAR_COL].isin(years)]
+
+        catalogue_df[MULTIPLIER_COL] = 1 # from source so no multiplier
 
     return catalogue_df
 
@@ -252,7 +256,7 @@ def fetch_missing_chirps_v2p0_p05_files(
         ~chc_fetch_paths_df[DATE_COL].isin(valid_downloads_df[DATE_COL])
     ]
 
-    keep_cols = [DATE_COL, YEAR_COL, DAY_COL, tif_filepath_col, FILETYPE_COL]
+    keep_cols = [DATE_COL, YEAR_COL, DAY_COL, tif_filepath_col, FILETYPE_COL, MULTIPLIER_COL]
 
     if pending_downloads_df.shape[0] > 0:
         print(f'Number of files that need to be downloaded: {pending_downloads_df.shape[0]}')
