@@ -93,14 +93,14 @@ def generate_geoglam_chirps_catalogue_df(
             by=[YEAR_COL, DAY_COL]
         ).reset_index(drop=True)
 
-        catalogue_df = \
-        catalogue_df[catalogue_df[YEAR_COL].isin(years)]
-
         catalogue_df[DATE_COL] = catalogue_df.apply(
             lambda row: datetime.datetime(year=row[YEAR_COL], month=1, day=1) \
                 + datetime.timedelta(days=row[DAY_COL] - 1),
             axis=1
         )
+
+        catalogue_df = \
+        catalogue_df[catalogue_df[YEAR_COL].isin(years)]
 
     return catalogue_df
 
@@ -127,14 +127,14 @@ def generate_chc_chirps_catalogue_df(
             by=[YEAR_COL, DAY_COL]
         ).reset_index(drop=True)
 
-        catalogue_df = \
-        catalogue_df[catalogue_df[YEAR_COL].isin(years)]
-
         catalogue_df[DATE_COL] = catalogue_df.apply(
             lambda row: datetime.datetime(year=row[YEAR_COL], month=1, day=1) \
                 + datetime.timedelta(days=row[DAY_COL] - 1),
             axis=1
         )
+
+        catalogue_df = \
+        catalogue_df[catalogue_df[YEAR_COL].isin(years)]
 
     return catalogue_df
 
@@ -168,6 +168,11 @@ def add_tif_corruption_cols(
     type_of_corruption_col:str = TYPE_OF_CORRUPTION_COL,
     njobs:int=mp.cpu_count() - 2,
 ):
+    if catalogue_df.shape[0] == 0:
+        catalogue_df[is_corrupted_col] = []
+        catalogue_df[type_of_corruption_col] = []
+        return catalogue_df
+
     with mp.Pool(njobs) as p:
         list_corrupt_stats = list(tqdm.tqdm(
             p.imap(check_if_corrupted, catalogue_df[tif_filepath_col]), 
