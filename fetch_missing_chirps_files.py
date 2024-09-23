@@ -14,16 +14,17 @@ import rsutils.utils as utils
 tqdm.tqdm.pandas()
 
 
-TIF_FILEPATH_COL = 'tif_filepath'
-FILETYPE_COL = 'filetype'
-DATE_COL = 'date'
-TIF_EXT = '.tif'
-TIF_GZ_EXT = '.tif.gz'
-YEAR_COL = 'year'
-DAY_COL = 'day'
-IS_CORRUPTED_COL = 'is_corrupted'
-TYPE_OF_CORRUPTION_COL = 'type_of_corruption'
-MULTIPLIER_COL = 'multiplier'
+COL_TIF_FILEPATH = 'tif_filepath'
+COL_FILETYPE = 'filetype'
+COL_DATE = 'date'
+COL_YEAR = 'year'
+COL_DAY = 'day'
+COL_IS_CORRUPTED = 'is_corrupted'
+COL_TYPE_OF_CORRUPTION = 'type_of_corruption'
+COL_MULTIPLIER = 'multiplier'
+
+EXT_TIF = '.tif'
+EXT_TIF_GZ = '.tif.gz'
 
 
 def geoglam_chirps_filename_parser(filename:str):
@@ -31,8 +32,8 @@ def geoglam_chirps_filename_parser(filename:str):
     year = int(year_day_str[:4])
     day = int(year_day_str[4:])
     return {
-        YEAR_COL: int(year),
-        DAY_COL: int(day),
+        COL_YEAR: int(year),
+        COL_DAY: int(day),
     }
 
 
@@ -42,8 +43,8 @@ def chc_chirps_v2_filename_parser(filename:str):
     year = datetime_obj.year
     day = (datetime_obj - datetime.datetime(year, 1, 1)).days + 1
     return {
-        YEAR_COL: year,
-        DAY_COL: day,
+        COL_YEAR: year,
+        COL_DAY: day,
     }
 
 
@@ -52,9 +53,9 @@ def create_catalogue_df(
     filename_parser, 
     ignore_extensions:list[str] = None,
     keep_extensions:list[str]=['.tif'],
-    tif_filepath_col:str = TIF_FILEPATH_COL,
+    tif_filepath_col:str = COL_TIF_FILEPATH,
 ):
-    data = {TIF_FILEPATH_COL: []}
+    data = {COL_TIF_FILEPATH: []}
     for filepath in utils.get_all_files_in_folder(
         folderpath=folderpath,
         ignore_extensions=ignore_extensions,
@@ -74,7 +75,7 @@ def create_catalogue_df(
 def generate_geoglam_chirps_catalogue_df(
     folderpath:str,
     years:list[int],
-    tif_filepath_col:str = TIF_FILEPATH_COL,
+    tif_filepath_col:str = COL_TIF_FILEPATH,
 ):
     catalogue_df = create_catalogue_df(
         folderpath = folderpath,
@@ -86,23 +87,24 @@ def generate_geoglam_chirps_catalogue_df(
     if catalogue_df.shape[0] == 0:
         catalogue_df = pd.DataFrame()
     else:
-        catalogue_df[FILETYPE_COL] = TIF_EXT
+        catalogue_df[COL_FILETYPE] = EXT_TIF
 
         catalogue_df = \
         catalogue_df.sort_values(
-            by=[YEAR_COL, DAY_COL]
+            by=[COL_YEAR, COL_DAY]
         ).reset_index(drop=True)
 
-        catalogue_df[DATE_COL] = catalogue_df.apply(
-            lambda row: datetime.datetime(year=row[YEAR_COL], month=1, day=1) \
-                + datetime.timedelta(days=row[DAY_COL] - 1),
+        catalogue_df[COL_DATE] = catalogue_df.apply(
+            lambda row: datetime.datetime(year=row[COL_YEAR], month=1, day=1) \
+                + datetime.timedelta(days=row[COL_DAY] - 1),
             axis=1
         )
 
         catalogue_df = \
-        catalogue_df[catalogue_df[YEAR_COL].isin(years)]
+        catalogue_df[catalogue_df[COL_YEAR].isin(years)]
 
-        catalogue_df[MULTIPLIER_COL] = 1 / 100 # geoprepare multiplies tiff with 100 to convert to integer
+        # geoprepare multiplies tiff with 100 to convert to integer
+        catalogue_df[COL_MULTIPLIER] = 1 / 100
 
     return catalogue_df
 
@@ -110,7 +112,7 @@ def generate_geoglam_chirps_catalogue_df(
 def generate_chc_chirps_catalogue_df(
     folderpath:str,
     years:list[int],
-    tif_filepath_col:str = TIF_FILEPATH_COL,
+    tif_filepath_col:str = COL_TIF_FILEPATH,
 ):
     catalogue_df = create_catalogue_df(
         folderpath = folderpath,
@@ -122,23 +124,23 @@ def generate_chc_chirps_catalogue_df(
     if catalogue_df.shape[0] == 0:
         catalogue_df = pd.DataFrame()
     else:
-        catalogue_df[FILETYPE_COL] = TIF_GZ_EXT
+        catalogue_df[COL_FILETYPE] = EXT_TIF_GZ
 
         catalogue_df = \
         catalogue_df.sort_values(
-            by=[YEAR_COL, DAY_COL]
+            by=[COL_YEAR, COL_DAY]
         ).reset_index(drop=True)
 
-        catalogue_df[DATE_COL] = catalogue_df.apply(
-            lambda row: datetime.datetime(year=row[YEAR_COL], month=1, day=1) \
-                + datetime.timedelta(days=row[DAY_COL] - 1),
+        catalogue_df[COL_DATE] = catalogue_df.apply(
+            lambda row: datetime.datetime(year=row[COL_YEAR], month=1, day=1) \
+                + datetime.timedelta(days=row[COL_DAY] - 1),
             axis=1
         )
 
         catalogue_df = \
-        catalogue_df[catalogue_df[YEAR_COL].isin(years)]
+        catalogue_df[catalogue_df[COL_YEAR].isin(years)]
 
-        catalogue_df[MULTIPLIER_COL] = 1 # from source so no multiplier
+        catalogue_df[COL_MULTIPLIER] = 1 # from source so no multiplier
 
     return catalogue_df
 
@@ -167,9 +169,9 @@ def check_if_corrupted(tif_filepath):
 
 def add_tif_corruption_cols(
     catalogue_df:pd.DataFrame, 
-    tif_filepath_col:str = TIF_FILEPATH_COL,
-    is_corrupted_col:str = IS_CORRUPTED_COL,
-    type_of_corruption_col:str = TYPE_OF_CORRUPTION_COL,
+    tif_filepath_col:str = COL_TIF_FILEPATH,
+    is_corrupted_col:str = COL_IS_CORRUPTED,
+    type_of_corruption_col:str = COL_TYPE_OF_CORRUPTION,
     njobs:int=mp.cpu_count() - 2,
 ):
     if catalogue_df.shape[0] == 0:
@@ -191,9 +193,9 @@ def add_tif_corruption_cols(
 
 def add_year_day_from_date(
     row, 
-    date_col:str = DATE_COL,
-    year_col:str = YEAR_COL,
-    day_col:str = DAY_COL,
+    date_col:str = COL_DATE,
+    year_col:str = COL_YEAR,
+    day_col:str = COL_DAY,
 ):
     date = row[date_col]
     year = date.year
@@ -209,7 +211,7 @@ def fetch_missing_chirps_v2p0_p05_files(
     chc_chirps_v2_0_p05_download_folderpath:str,
     njobs:int = mp.cpu_count() - 2,
     overwrite:bool = False,
-    tif_filepath_col:str = TIF_FILEPATH_COL,
+    tif_filepath_col:str = COL_TIF_FILEPATH,
 ):
     print('Creating CHIRPS local catalogue.')
     geoglam_chirps_catalogue_df = generate_geoglam_chirps_catalogue_df(
@@ -228,7 +230,7 @@ def fetch_missing_chirps_v2p0_p05_files(
     geoglam_chirps_catalogue_df = add_tif_corruption_cols(
         catalogue_df = geoglam_chirps_catalogue_df,
     )
-    n_corrupted = geoglam_chirps_catalogue_df[IS_CORRUPTED_COL].sum()
+    n_corrupted = geoglam_chirps_catalogue_df[COL_IS_CORRUPTED].sum()
     print(f'Number of corrupted tifs: {n_corrupted}')
 
     print(f"Querying CHC for p05 CHIRPS files for years={years}")
@@ -246,17 +248,17 @@ def fetch_missing_chirps_v2p0_p05_files(
 
     chc_fetch_paths_df = chc_fetch_paths_df.apply(add_year_day_from_date, axis=1)
 
-    valid_downloads_df = geoglam_chirps_catalogue_df[~geoglam_chirps_catalogue_df[IS_CORRUPTED_COL]]
+    valid_downloads_df = geoglam_chirps_catalogue_df[~geoglam_chirps_catalogue_df[COL_IS_CORRUPTED]]
 
     valid_downloads_df = pd.concat([
         valid_downloads_df, chc_chirps_catalogue_df
     ]).reset_index(drop=True)
 
     pending_downloads_df = chc_fetch_paths_df[
-        ~chc_fetch_paths_df[DATE_COL].isin(valid_downloads_df[DATE_COL])
+        ~chc_fetch_paths_df[COL_DATE].isin(valid_downloads_df[COL_DATE])
     ]
 
-    keep_cols = [DATE_COL, YEAR_COL, DAY_COL, tif_filepath_col, FILETYPE_COL, MULTIPLIER_COL]
+    keep_cols = [COL_DATE, COL_YEAR, COL_DAY, tif_filepath_col, COL_FILETYPE, COL_MULTIPLIER]
 
     if pending_downloads_df.shape[0] > 0:
         print(f'Number of files that need to be downloaded: {pending_downloads_df.shape[0]}')
@@ -268,12 +270,12 @@ def fetch_missing_chirps_v2p0_p05_files(
             download_filepath_col = tif_filepath_col,
             overwrite = overwrite,
         )
-        pending_downloads_df[FILETYPE_COL] = TIF_GZ_EXT
+        pending_downloads_df[COL_FILETYPE] = EXT_TIF_GZ
 
         merged_catalogue_df = pd.concat([
             pending_downloads_df[keep_cols],
             valid_downloads_df[keep_cols],
-        ]).sort_values(by=DATE_COL, ascending=True).reset_index(drop=True)
+        ]).sort_values(by=COL_DATE, ascending=True).reset_index(drop=True)
     else:
         merged_catalogue_df = valid_downloads_df[keep_cols]
 

@@ -2,6 +2,7 @@ import sys
 import geopandas as gpd
 import multiprocessing as mp
 import time
+import argparse
 
 import chcfetch.constants
 import fetch_missing_chirps_files as fmcf
@@ -58,6 +59,10 @@ if __name__ == '__main__':
     - export_filepath
     - working_folderpath
     """
+
+
+
+
     start_time = time.time()
 
     roi_shapefile, start_year, end_year, \
@@ -84,10 +89,10 @@ if __name__ == '__main__':
         njobs = njobs,
     )
 
-    catalogue_df[rtcm.METHOD_COL] = rtcm.LoadTIFMethod.READ_AND_CROP
+    catalogue_df[rtcm.COL_METHOD] = rtcm.LoadTIFMethod.READ_AND_CROP
     catalogue_df.loc[
-        catalogue_df[fmcf.FILETYPE_COL] == fmcf.TIF_GZ_EXT,
-        rtcm.METHOD_COL
+        catalogue_df[fmcf.COL_FILETYPE] == fmcf.EXT_TIF_GZ,
+        rtcm.COL_METHOD
     ] = rtcm.LoadTIFMethod.COREGISTER_AND_CROP
 
     updated_catalogue_df = rtcm.read_tifs_get_agg_value(
@@ -101,9 +106,9 @@ if __name__ == '__main__':
     )
 
     updated_catalogue_df[[
-        fmcf.DATE_COL,
-        fmcf.YEAR_COL,
-        fmcf.DAY_COL,
+        fmcf.COL_DATE,
+        fmcf.COL_YEAR,
+        fmcf.COL_DAY,
         VAL_COl,
     ]].to_csv(export_filepath, index=False)
 

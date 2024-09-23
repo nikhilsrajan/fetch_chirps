@@ -12,7 +12,7 @@ import rsutils.utils as utils
 import fetch_missing_chirps_files as fmcf
 
 
-METHOD_COL = 'method'
+COL_METHOD = 'method'
 
 
 class LoadTIFMethod:
@@ -130,9 +130,9 @@ def read_tif_get_agg_value(
 ):
     aggregation_func = AGGREGATION_DICT[aggregation]
 
-    if filetype == fmcf.TIF_EXT:
+    if filetype == fmcf.EXT_TIF:
         tif_filepath = filepath
-    elif filetype == fmcf.TIF_GZ_EXT:
+    elif filetype == fmcf.EXT_TIF_GZ:
         gzip_file = utils.GZipTIF(
             gzip_tif_filepath = filepath
         )
@@ -154,7 +154,7 @@ def read_tif_get_agg_value(
 
     del out_image, out_meta
 
-    if filetype == fmcf.TIF_GZ_EXT:
+    if filetype == fmcf.EXT_TIF_GZ:
         gzip_file.delete_tif()
         del gzip_file
 
@@ -186,10 +186,10 @@ def read_tifs_get_agg_value(
     shapes_gdf:gpd.geopandas,
     val_col:str,
     working_folderpath:str,
-    method_col:str = METHOD_COL,
-    tif_filepath_col:str = fmcf.TIF_FILEPATH_COL,
-    filetype_col:str = fmcf.FILETYPE_COL,
-    multiplier_col:str = fmcf.MULTIPLIER_COL,
+    method_col:str = COL_METHOD,
+    tif_filepath_col:str = fmcf.COL_TIF_FILEPATH,
+    filetype_col:str = fmcf.COL_FILETYPE,
+    multiplier_col:str = fmcf.COL_MULTIPLIER,
     aggregation:str = 'mean',
     reference_tif_filepath:str = None,
     njobs:int = mp.cpu_count() - 2,
