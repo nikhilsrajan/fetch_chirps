@@ -22,9 +22,13 @@ COL_DAY = 'day'
 COL_IS_CORRUPTED = 'is_corrupted'
 COL_TYPE_OF_CORRUPTION = 'type_of_corruption'
 COL_MULTIPLIER = 'multiplier'
+COL_SOURCE = 'source'
 
 EXT_TIF = '.tif'
 EXT_TIF_GZ = '.tif.gz'
+
+SOURCE_CHC = 'chc'
+SOURCE_GEOGLAM = 'geoglam'
 
 
 def geoglam_chirps_filename_parser(filename:str):
@@ -105,6 +109,7 @@ def generate_geoglam_chirps_catalogue_df(
 
         # geoprepare multiplies tiff with 100 to convert to integer
         catalogue_df[COL_MULTIPLIER] = 1 / 100
+        catalogue_df[COL_SOURCE] = SOURCE_GEOGLAM
 
     return catalogue_df
 
@@ -141,6 +146,7 @@ def generate_chc_chirps_catalogue_df(
         catalogue_df[catalogue_df[COL_YEAR].isin(years)]
 
         catalogue_df[COL_MULTIPLIER] = 1 # from source so no multiplier
+        catalogue_df[COL_SOURCE] = SOURCE_CHC
 
     return catalogue_df
 
@@ -205,39 +211,50 @@ def add_year_day_from_date(
     return row
 
 
-def fetch_missing_chirps_v2p0_p05_files(
+# WARNING: This function is doing too many things
+def fetch_missing_chirps_files(
     years:list[int],
-    geoglam_chirps_data_folderpath:str,
-    chc_chirps_v2_0_p05_download_folderpath:str,
+    product:str,
+    chc_chirps_download_folderpath:str,
+    geoglam_chirps_data_folderpath:str = None,
     njobs:int = mp.cpu_count() - 2,
     overwrite:bool = False,
     tif_filepath_col:str = COL_TIF_FILEPATH,
 ):
+    VALID_PRODUCTS = [chcfetch.Products.CHIRPS.P05, chcfetch.Products.CHIRPS.PRELIM]
+    if product not in VALID_PRODUCTS:
+        raise ValueError(f'Invalid product. Must be from {VALID_PRODUCTS}')
+
     print('Creating CHIRPS local catalogue.')
-    geoglam_chirps_catalogue_df = generate_geoglam_chirps_catalogue_df(
-        folderpath = geoglam_chirps_data_folderpath,
-        tif_filepath_col = tif_filepath_col,
-        years = years,
-    )
 
     chc_chirps_catalogue_df = generate_chc_chirps_catalogue_df(
-        folderpath = chc_chirps_v2_0_p05_download_folderpath,
+        folderpath = chc_chirps_download_folderpath,
         tif_filepath_col = tif_filepath_col,
         years = years,
     )
 
-    print('Checking how many files in the local CHIRPS catalogue are corrupted.')
-    geoglam_chirps_catalogue_df = add_tif_corruption_cols(
-        catalogue_df = geoglam_chirps_catalogue_df,
-    )
-    n_corrupted = geoglam_chirps_catalogue_df[COL_IS_CORRUPTED].sum()
-    print(f'Number of corrupted tifs: {n_corrupted}')
+    geoglam_folderpath_provided = geoglam_chirps_data_folderpath is not None
 
-    print(f"Querying CHC for p05 CHIRPS files for years={years}")
+    if geoglam_folderpath_provided:
+        geoglam_chirps_catalogue_df = generate_geoglam_chirps_catalogue_df(
+            folderpath = geoglam_chirps_data_folderpath,
+            tif_filepath_col = tif_filepath_col,
+            years = years,
+        )
+        print('Checking how many files in the local CHIRPS catalogue are corrupted.')
+        geoglam_chirps_catalogue_df = add_tif_corruption_cols(
+            catalogue_df = geoglam_chirps_catalogue_df,
+        )
+        n_corrupted = geoglam_chirps_catalogue_df[COL_IS_CORRUPTED].sum()
+        print(f'Number of corrupted tifs: {n_corrupted}')
+    else:
+        raise NotImplementedError('Yet to implement the case when geoglam_chirps_data_folderpath is None.')
+
+    print(f"Querying CHC for {product} CHIRPS files for years={years}")
     chc_fetch_paths_dfs = []
     for _year in tqdm.tqdm(years):
         _res_df = chcfetch.query_chirps_v2_global_daily(
-            product = chcfetch.Products.CHIRPS.P05,
+            product = product,
             startdate = datetime.datetime(_year, 1, 1),
             enddate = datetime.datetime(_year, 12, 31),
             show_progress = False,
@@ -248,15 +265,18 @@ def fetch_missing_chirps_v2p0_p05_files(
 
     chc_fetch_paths_df = chc_fetch_paths_df.apply(add_year_day_from_date, axis=1)
 
-    valid_downloads_df = geoglam_chirps_catalogue_df[~geoglam_chirps_catalogue_df[COL_IS_CORRUPTED]]
+    if geoglam_folderpath_provided:
+        valid_downloads_df = geoglam_chirps_catalogue_df[~geoglam_chirps_catalogue_df[COL_IS_CORRUPTED]]
 
-    valid_downloads_df = pd.concat([
-        valid_downloads_df, chc_chirps_catalogue_df
-    ]).reset_index(drop=True)
+        valid_downloads_df = pd.concat([
+            valid_downloads_df, chc_chirps_catalogue_df
+        ]).reset_index(drop=True)
 
-    pending_downloads_df = chc_fetch_paths_df[
-        ~chc_fetch_paths_df[COL_DATE].isin(valid_downloads_df[COL_DATE])
-    ]
+        pending_downloads_df = chc_fetch_paths_df[
+            ~chc_fetch_paths_df[COL_DATE].isin(valid_downloads_df[COL_DATE])
+        ]
+    else:
+        pending_downloads_df = chc_fetch_paths_df
 
     keep_cols = [COL_DATE, COL_YEAR, COL_DAY, tif_filepath_col, COL_FILETYPE, COL_MULTIPLIER]
 
@@ -265,7 +285,7 @@ def fetch_missing_chirps_v2p0_p05_files(
 
         pending_downloads_df = chcfetch.download_files_from_paths_df(
             paths_df = pending_downloads_df,
-            download_folderpath = chc_chirps_v2_0_p05_download_folderpath,
+            download_folderpath = chc_chirps_download_folderpath,
             njobs = njobs,
             download_filepath_col = tif_filepath_col,
             overwrite = overwrite,
