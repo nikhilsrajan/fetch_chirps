@@ -81,11 +81,11 @@ if __name__ == '__main__':
     VALID_AGGREGATION = list(rtcm.AGGREGATION_DICT.keys())
 
     parser.add_argument('roi_filepath', action='store', help='Path to the shapefile.')
-    parser.add_argument('start_year', metavar='YYYY', action='store', help=f'Start year for fetching the CHIRPS data.')
-    parser.add_argument('end_year', metavar='YYYY', action='store', help=f'End year for fetching the CHIRPS data.')
+    parser.add_argument('start_year', action='store', help=f'Start year for fetching the CHIRPS data. Format: YYYY')
+    parser.add_argument('end_year', action='store', help=f'End year for fetching the CHIRPS data. Format: YYYY')
     parser.add_argument('export_filepath', action='store', help='Filepath where the output csv is to be stored.')
-    parser.add_argument('-p', '--product', metavar='prelim | p05', action='store', default='p05', required=False, help=f'[default = p05] CHIRPS product to be fetched. Options: {VALID_PRODUCTS}.')
-    parser.add_argument('-d', '--download_folderpath', action='store', required=False, default=None, help=f'[default = {config.FOLDERPATH_DOWNLOAD_CHC_CHIRPS + 'PRODUCT/'}] Path to the folder where files will be downloaded to.')
+    parser.add_argument('-p', '--product', action='store', default='p05', required=False, help=f'[default = p05] CHIRPS product to be fetched. Options: {VALID_PRODUCTS}.')
+    parser.add_argument('-d', '--download_folderpath', action='store', required=False, default=None, help=f"[default = {config.FOLDERPATH_DOWNLOAD_CHC_CHIRPS + 'PRODUCT/'}] Path to the folder where files will be downloaded to.")
     parser.add_argument('-g', '--geoglam-folderpath', required=False, default=None, action='store', help=f'Folderpath where GEOGLAM data is stored. Files present in the GEOGLAM folder will not be re-downloaded.')
     parser.add_argument('-a', '--aggregation', action='store', default='mean', required=False, help=f'[default = mean] Aggregation method to reduce CHIRPS values for a given region to a single value. Options: {VALID_AGGREGATION}.')
     parser.add_argument('-j', '--njobs', action='store', default=DEFAULT_NJOBS, required=False, help=f'[default = {DEFAULT_NJOBS}] Number of cores to use for parallel downloads and computation.')
@@ -160,7 +160,7 @@ if __name__ == '__main__':
     )
 
     shutil.rmtree(working_folderpath)
-    
+
     os.makedirs(os.path.split(export_filepath)[0], exist_ok=True)
     updated_catalogue_df[[
         fmcf.COL_DATE,
