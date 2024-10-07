@@ -30,6 +30,9 @@ EXT_TIF_GZ = '.tif.gz'
 SOURCE_CHC = 'chc'
 SOURCE_GEOGLAM = 'geoglam'
 
+CHIRPS_P05_FIRST_DATE = datetime.datetime(1981, 1, 1)
+CHIRPS_PRELIM_FIRST_DATE = datetime.datetime(2015, 1, 1)
+
 
 def geoglam_chirps_filename_parser(filename:str):
     year_day_str = filename.split('_')[1].split('.')[-1]
@@ -248,14 +251,6 @@ def fetch_missing_chirps_files(
         n_corrupted = geoglam_chirps_catalogue_df[COL_IS_CORRUPTED].sum()
         print(f'Number of corrupted tifs: {n_corrupted}')
 
-    print(f"Querying CHC for {product} CHIRPS files for years={years}")
-    chc_fetch_paths_df = chcfetch.query_chirps_v2_global_daily(
-        product = product,
-        years = years,
-        njobs = njobs,
-    )
-
-    chc_fetch_paths_df = chc_fetch_paths_df.apply(add_year_day_from_date, axis=1)
 
     if geoglam_folderpath_provided and geoglam_chirps_catalogue_df.shape[0] > 0:
         valid_downloads_df = geoglam_chirps_catalogue_df[~geoglam_chirps_catalogue_df[COL_IS_CORRUPTED]]
@@ -264,11 +259,24 @@ def fetch_missing_chirps_files(
             valid_downloads_df, chc_chirps_catalogue_df
         ]).reset_index(drop=True)
 
-        pending_downloads_df = chc_fetch_paths_df[
-            ~chc_fetch_paths_df[COL_DATE].isin(valid_downloads_df[COL_DATE])
-        ]
     else:
-        pending_downloads_df = chc_fetch_paths_df
+        valid_downloads_df = chc_chirps_catalogue_df
+
+
+    print(f"Querying CHC for {product} CHIRPS files for years={years}")
+    chc_fetch_paths_df = chcfetch.query_chirps_v2_global_daily(
+        product = product,
+        years = years,
+        njobs = njobs,
+    )
+
+    chc_fetch_paths_df = chc_fetch_paths_df.apply(add_year_day_from_date, axis=1)
+    chc_fetch_paths_df[COL_MULTIPLIER] = 1 # from source so no multiplier
+
+
+    pending_downloads_df = chc_fetch_paths_df[
+        ~chc_fetch_paths_df[COL_DATE].isin(valid_downloads_df[COL_DATE])
+    ]
 
     keep_cols = [COL_DATE, COL_YEAR, COL_DAY, tif_filepath_col, COL_FILETYPE, COL_MULTIPLIER]
 
