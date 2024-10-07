@@ -274,7 +274,6 @@ def fetch_missing_chirps_files(
     chc_fetch_paths_df[COL_SOURCE] = SOURCE_CHC
     chc_fetch_paths_df[COL_MULTIPLIER] = 1 # from source so no multiplier
 
-
     pending_downloads_df = chc_fetch_paths_df[
         ~chc_fetch_paths_df[COL_DATE].isin(valid_downloads_df[COL_DATE])
     ]
@@ -299,5 +298,7 @@ def fetch_missing_chirps_files(
         ]).sort_values(by=COL_DATE, ascending=True).reset_index(drop=True)
     else:
         merged_catalogue_df = valid_downloads_df[keep_cols]
+
+    print(merged_catalogue_df) # debug
 
     return merged_catalogue_df
