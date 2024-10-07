@@ -154,6 +154,8 @@ if __name__ == '__main__':
             rtcm.COL_METHOD
         ] = rtcm.LoadTIFMethod.COREGISTER_AND_CROP
 
+
+    print('Reading tifs and generating csv')
     updated_catalogue_df = rtcm.read_tifs_get_agg_value(
         shapes_gdf = shapes_gdf,
         catalogue_df = catalogue_df,
