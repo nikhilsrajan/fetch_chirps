@@ -271,6 +271,7 @@ def fetch_missing_chirps_files(
     )
 
     chc_fetch_paths_df = chc_fetch_paths_df.apply(add_year_day_from_date, axis=1)
+    chc_fetch_paths_df[COL_SOURCE] = SOURCE_CHC
     chc_fetch_paths_df[COL_MULTIPLIER] = 1 # from source so no multiplier
 
 
