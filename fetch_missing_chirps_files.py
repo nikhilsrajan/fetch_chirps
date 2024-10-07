@@ -247,25 +247,17 @@ def fetch_missing_chirps_files(
         )
         n_corrupted = geoglam_chirps_catalogue_df[COL_IS_CORRUPTED].sum()
         print(f'Number of corrupted tifs: {n_corrupted}')
-    else:
-        raise NotImplementedError('Yet to implement the case when geoglam_chirps_data_folderpath is None.')
 
     print(f"Querying CHC for {product} CHIRPS files for years={years}")
-    chc_fetch_paths_dfs = []
-    for _year in tqdm.tqdm(years):
-        _res_df = chcfetch.query_chirps_v2_global_daily(
-            product = product,
-            startdate = datetime.datetime(_year, 1, 1),
-            enddate = datetime.datetime(_year, 12, 31),
-            show_progress = False,
-        )
-        chc_fetch_paths_dfs.append(_res_df)
-        del _res_df
-    chc_fetch_paths_df = pd.concat(chc_fetch_paths_dfs).reset_index(drop=True)
+    chc_fetch_paths_df = chcfetch.query_chirps_v2_global_daily(
+        product = product,
+        years = years,
+        njobs = njobs,
+    )
 
     chc_fetch_paths_df = chc_fetch_paths_df.apply(add_year_day_from_date, axis=1)
 
-    if geoglam_folderpath_provided:
+    if geoglam_folderpath_provided and geoglam_chirps_catalogue_df.shape[0] > 0:
         valid_downloads_df = geoglam_chirps_catalogue_df[~geoglam_chirps_catalogue_df[COL_IS_CORRUPTED]]
 
         valid_downloads_df = pd.concat([

@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser.add_argument('export_filepath', action='store', help='Filepath where the output csv is to be stored.')
     parser.add_argument('-p', '--product', action='store', default='p05', required=False, help=f'[default = p05] CHIRPS product to be fetched. Options: {VALID_PRODUCTS}.')
     parser.add_argument('-d', '--download_folderpath', action='store', required=False, default=None, help=f"[default = {config.FOLDERPATH_DOWNLOAD_CHC_CHIRPS + 'PRODUCT/'}] Path to the folder where files will be downloaded to.")
-    parser.add_argument('-g', '--geoglam-folderpath', required=False, default=None, action='store', help=f'Folderpath where GEOGLAM data is stored. Files present in the GEOGLAM folder will not be re-downloaded.')
+    parser.add_argument('-g', '--geoglam-folderpath', required=False, default=None, action='store', help=f"[path/to/geoglam | default] Folderpath where GEOGLAM data is stored. Files present in the GEOGLAM folder will not be re-downloaded.")
     parser.add_argument('-a', '--aggregation', action='store', default='mean', required=False, help=f'[default = mean] Aggregation method to reduce CHIRPS values for a given region to a single value. Options: {VALID_AGGREGATION}.')
     parser.add_argument('-j', '--njobs', action='store', default=DEFAULT_NJOBS, required=False, help=f'[default = {DEFAULT_NJOBS}] Number of cores to use for parallel downloads and computation.')
 
@@ -110,8 +110,13 @@ if __name__ == '__main__':
         }[product]
     
     geoglam_chirps_folderpath = args.geoglam_folderpath
-    if geoglam_chirps_folderpath is None and product == 'p05':
-        geoglam_chirps_folderpath = config.FOLDERPATH_GEOGLAM_CHIRPS_GLOBAL
+    if geoglam_chirps_folderpath is not None:
+        geoglam_chirps_folderpath = str(geoglam_chirps_folderpath)
+        if geoglam_chirps_folderpath.lower() == 'default' and product == 'p05':
+            geoglam_chirps_folderpath = config.FOLDERPATH_GEOGLAM_CHIRPS_GLOBAL
+        if geoglam_chirps_folderpath.lower() == 'default' and product == 'prelim':
+            print('Warning: No default GEOGLAM folderpath set for product=prelim. Reverting to None.')
+            geoglam_chirps_folderpath = None
 
     aggregation = str(args.aggregation).lower()
     if aggregation not in VALID_AGGREGATION:
