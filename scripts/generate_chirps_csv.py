@@ -148,7 +148,7 @@ if __name__ == '__main__':
         reference_tif_filepath = geoglam_catalogue_df[fmcf.COL_TIF_FILEPATH].tolist()[0]
 
     catalogue_df[rtcm.COL_METHOD] = rtcm.LoadTIFMethod.READ_AND_CROP
-    if reference_tif_filepath is None:
+    if reference_tif_filepath is not None:
         catalogue_df.loc[
             catalogue_df[fmcf.COL_FILETYPE] == fmcf.EXT_TIF_GZ,
             rtcm.COL_METHOD
