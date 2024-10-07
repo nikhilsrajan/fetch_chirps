@@ -278,7 +278,7 @@ def fetch_missing_chirps_files(
         ~chc_fetch_paths_df[COL_DATE].isin(valid_downloads_df[COL_DATE])
     ]
 
-    keep_cols = [COL_DATE, COL_YEAR, COL_DAY, tif_filepath_col, COL_FILETYPE, COL_MULTIPLIER]
+    keep_cols = [COL_DATE, COL_YEAR, COL_DAY, tif_filepath_col, COL_FILETYPE, COL_MULTIPLIER, COL_SOURCE]
 
     if pending_downloads_df.shape[0] > 0:
         print(f'Number of files that need to be downloaded: {pending_downloads_df.shape[0]}')
@@ -298,7 +298,5 @@ def fetch_missing_chirps_files(
         ]).sort_values(by=COL_DATE, ascending=True).reset_index(drop=True)
     else:
         merged_catalogue_df = valid_downloads_df[keep_cols]
-
-    print(merged_catalogue_df) # debug
 
     return merged_catalogue_df
