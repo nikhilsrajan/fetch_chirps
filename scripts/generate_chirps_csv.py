@@ -166,7 +166,8 @@ if __name__ == '__main__':
         working_folderpath = working_folderpath,
     )
 
-    shutil.rmtree(working_folderpath)
+    if os.path.exists(working_folderpath):
+        shutil.rmtree(working_folderpath)
 
     os.makedirs(os.path.split(export_filepath)[0], exist_ok=True)
     updated_catalogue_df[[
