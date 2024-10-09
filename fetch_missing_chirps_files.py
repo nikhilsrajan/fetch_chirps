@@ -295,7 +295,7 @@ def fetch_missing_chirps_files(
         'p05': CHIRPS_P05_FIRST_DATE,
         'prelim': CHIRPS_PRELIM_FIRST_DATE,
     }[product]
-    
+
     missing_dates = get_missing_dates(
         dates = valid_downloads_df[COL_DATE],
         years = years,
@@ -309,6 +309,7 @@ def fetch_missing_chirps_files(
         missing_years = list({date.year for date in missing_dates})
         missing_years.sort()
 
+    pending_downloads_df = None
     if missing_years is not None:
         print(f"Querying CHC for {product} CHIRPS files for missing years={missing_years}")
         chc_fetch_paths_df = chcfetch.query_chirps_v2_global_daily(
@@ -317,20 +318,20 @@ def fetch_missing_chirps_files(
             njobs = njobs,
         )
 
-    chc_fetch_paths_df = chc_fetch_paths_df.apply(add_year_day_from_date, axis=1)
-    chc_fetch_paths_df[COL_SOURCE] = SOURCE_CHC
-    chc_fetch_paths_df[COL_MULTIPLIER] = 1 # from source so no multiplier
+        chc_fetch_paths_df = chc_fetch_paths_df.apply(add_year_day_from_date, axis=1)
+        chc_fetch_paths_df[COL_SOURCE] = SOURCE_CHC
+        chc_fetch_paths_df[COL_MULTIPLIER] = 1 # from source so no multiplier
 
-    if valid_downloads_df.shape[0] > 0:
-        pending_downloads_df = chc_fetch_paths_df[
-            ~chc_fetch_paths_df[COL_DATE].isin(valid_downloads_df[COL_DATE])
-        ]
-    else:
-        pending_downloads_df = chc_fetch_paths_df
+        if valid_downloads_df.shape[0] > 0:
+            pending_downloads_df = chc_fetch_paths_df[
+                ~chc_fetch_paths_df[COL_DATE].isin(valid_downloads_df[COL_DATE])
+            ]
+        else:
+            pending_downloads_df = chc_fetch_paths_df
 
     keep_cols = [COL_DATE, COL_YEAR, COL_DAY, tif_filepath_col, COL_FILETYPE, COL_MULTIPLIER, COL_SOURCE]
 
-    if pending_downloads_df.shape[0] > 0:
+    if pending_downloads_df is not None and pending_downloads_df.shape[0] > 0:
         print(f'Number of files that need to be downloaded: {pending_downloads_df.shape[0]}')
 
         pending_downloads_df = chcfetch.download_files_from_paths_df(
@@ -348,5 +349,7 @@ def fetch_missing_chirps_files(
         ]).sort_values(by=COL_DATE, ascending=True).reset_index(drop=True)
     else:
         merged_catalogue_df = valid_downloads_df[keep_cols]
+
+    merged_catalogue_df = merged_catalogue_df[merged_catalogue_df[COL_DATE] <= before_date]
 
     return merged_catalogue_df
