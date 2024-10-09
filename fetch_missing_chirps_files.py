@@ -302,7 +302,7 @@ def fetch_missing_chirps_files(
         before_date = before_date,
     )
     if len(missing_dates) > 0:
-        missing_years = {date.year for date in missing_dates}
+        missing_years = list({date.year for date in missing_dates})
         missing_years.sort()
 
     if len(missing_years) > 0:
