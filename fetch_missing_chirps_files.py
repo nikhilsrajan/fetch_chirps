@@ -276,9 +276,12 @@ def fetch_missing_chirps_files(
     chc_fetch_paths_df[COL_SOURCE] = SOURCE_CHC
     chc_fetch_paths_df[COL_MULTIPLIER] = 1 # from source so no multiplier
 
-    pending_downloads_df = chc_fetch_paths_df[
-        ~chc_fetch_paths_df[COL_DATE].isin(valid_downloads_df[COL_DATE])
-    ]
+    if valid_downloads_df.shape[0] > 0:
+        pending_downloads_df = chc_fetch_paths_df[
+            ~chc_fetch_paths_df[COL_DATE].isin(valid_downloads_df[COL_DATE])
+        ]
+    else:
+        pending_downloads_df = chc_fetch_paths_df
 
     keep_cols = [COL_DATE, COL_YEAR, COL_DAY, tif_filepath_col, COL_FILETYPE, COL_MULTIPLIER, COL_SOURCE]
 
