@@ -318,7 +318,7 @@ def fetch_missing_chirps_files(
             njobs = njobs,
         )
 
-        print(chc_fetch_paths_df)
+        print(chc_fetch_paths_df[chc_fetch_paths_df[COL_DATE].isin(missing_dates)])
 
         chc_fetch_paths_df = chc_fetch_paths_df.apply(add_year_day_from_date, axis=1)
         chc_fetch_paths_df[COL_SOURCE] = SOURCE_CHC
