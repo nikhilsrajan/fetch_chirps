@@ -95,13 +95,13 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--geoglam-folderpath', required=False, default=None, action='store', help=f"[path/to/geoglam | default] Folderpath where GEOGLAM data is stored. Files present in the GEOGLAM folder will not be re-downloaded.")
     parser.add_argument('-a', '--aggregation', action='store', default='mean', required=False, help=f'[default = mean] Aggregation method to reduce CHIRPS values for a given region to a single value. Options: {VALID_AGGREGATION}.')
     parser.add_argument('-j', '--njobs', action='store', default=DEFAULT_NJOBS, required=False, help=f'[default = {DEFAULT_NJOBS}] Number of cores to use for parallel downloads and computation.')
-    parser.add_argument('-b', '--before', metavar='DATE_BEFORE', action='store', required=False, help=f'[default = {DEFAULT_BEFORE_DATE_PRELIM} for prelim | {DEFAULT_BEFORE_DATE_P05} for p05] Date upto which to query the files for. This is to avoid FTP requests provided files before the given date is already present. Options: [YYYY-MM-DD | today]')
+    parser.add_argument('-b', '--before', metavar='DATE_BEFORE', action='store', default=None, required=False, help=f'[default = {DEFAULT_BEFORE_DATE_PRELIM} for prelim | {DEFAULT_BEFORE_DATE_P05} for p05] Date upto which to query the files for. This is to avoid FTP requests provided files before the given date is already present. Options: [YYYY-MM-DD | today]')
 
     args = parser.parse_args()
 
     start_time = time.time()
 
-    roi_shapefile = args.roi_filepath
+    roi_filepath = args.roi_filepath
     start_year = int(args.start_year)
     end_year = int(args.end_year)
     export_filepath = args.export_filepath
@@ -146,10 +146,26 @@ if __name__ == '__main__':
 
     working_folderpath = config.FOLDERPATH_TEMP
 
-    shapes_gdf = gpd.read_file(roi_shapefile)
+    shapes_gdf = gpd.read_file(roi_filepath)
     years = list(range(start_year, end_year + 1))
 
     VAL_COL = f'{aggregation} CHIRPS'
+
+
+    print("--- inputs ---")
+    print(f"roi_filepath: {roi_filepath}")
+    print(f"start_year: {start_year}")
+    print(f"end_year: {end_year}")
+    print(f"export_filepath: {export_filepath}")
+    print(f"product: {product}")
+    print(f"download_folderpath: {chirps_download_folderpath}")
+    print(f"before_date: {before_date.strftime('%Y-%m-%d')}")
+    if geoglam_chirps_folderpath is not None:
+        print(f"geoglam_chirps_folderpath: {geoglam_chirps_folderpath}")
+    print(f"aggregation: {aggregation}")
+    print(f"njobs: {njobs}")
+    
+    print("--- run ---")
 
     catalogue_df = fmcf.fetch_missing_chirps_files(
         years = years,
