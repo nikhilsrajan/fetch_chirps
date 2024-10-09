@@ -10,6 +10,10 @@ import chcfetch.chcfetch as chcfetch
 import rsutils.utils as utils
 
 
+"""
+Notes: CHIRPS prelim files for dates 2024-05-16 to 2024-05-20 are not available as of 2024-10-09
+"""
+
 # https://stackoverflow.com/questions/18603270/progress-indicator-during-pandas-operations
 tqdm.tqdm.pandas()
 
@@ -318,8 +322,6 @@ def fetch_missing_chirps_files(
             njobs = njobs,
         )
 
-        print(chc_fetch_paths_df[chc_fetch_paths_df[COL_DATE].isin(missing_dates)])
-
         chc_fetch_paths_df = chc_fetch_paths_df.apply(add_year_day_from_date, axis=1)
         chc_fetch_paths_df[COL_SOURCE] = SOURCE_CHC
         chc_fetch_paths_df[COL_MULTIPLIER] = 1 # from source so no multiplier
@@ -332,10 +334,6 @@ def fetch_missing_chirps_files(
             pending_downloads_df = chc_fetch_paths_df
 
     keep_cols = [COL_DATE, COL_YEAR, COL_DAY, tif_filepath_col, COL_FILETYPE, COL_MULTIPLIER, COL_SOURCE]
-
-    print(pending_downloads_df)
-    if pending_downloads_df is not None:
-        print(pending_downloads_df.shape)
 
     if pending_downloads_df is not None and pending_downloads_df.shape[0] > 0:
         print(f'Number of files that need to be downloaded: {pending_downloads_df.shape[0]}')
