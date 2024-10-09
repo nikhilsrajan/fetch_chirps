@@ -331,6 +331,10 @@ def fetch_missing_chirps_files(
 
     keep_cols = [COL_DATE, COL_YEAR, COL_DAY, tif_filepath_col, COL_FILETYPE, COL_MULTIPLIER, COL_SOURCE]
 
+    print(pending_downloads_df)
+    if pending_downloads_df is not None:
+        print(pending_downloads_df.shape)
+
     if pending_downloads_df is not None and pending_downloads_df.shape[0] > 0:
         print(f'Number of files that need to be downloaded: {pending_downloads_df.shape[0]}')
 
