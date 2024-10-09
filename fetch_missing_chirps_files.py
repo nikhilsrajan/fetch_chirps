@@ -295,17 +295,21 @@ def fetch_missing_chirps_files(
         'p05': CHIRPS_P05_FIRST_DATE,
         'prelim': CHIRPS_PRELIM_FIRST_DATE,
     }[product]
+    
     missing_dates = get_missing_dates(
         dates = valid_downloads_df[COL_DATE],
         years = years,
         first_date = first_date,
         before_date = before_date,
     )
+
+    missing_years = None
     if len(missing_dates) > 0:
+        print(f'missing_dates: {missing_dates}')
         missing_years = list({date.year for date in missing_dates})
         missing_years.sort()
 
-    if len(missing_years) > 0:
+    if missing_years is not None:
         print(f"Querying CHC for {product} CHIRPS files for missing years={missing_years}")
         chc_fetch_paths_df = chcfetch.query_chirps_v2_global_daily(
             product = product,
