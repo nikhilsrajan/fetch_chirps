@@ -214,6 +214,31 @@ def add_year_day_from_date(
     return row
 
 
+def get_missing_dates(
+    dates:list[datetime.datetime],
+    years:list[int],
+    first_date:datetime.datetime,
+    before_date:datetime.datetime,
+):
+    filtered_dates = {
+        date for date in dates 
+        if date >= first_date 
+        and date <= before_date 
+        and date.year in years
+    }
+    all_dates = {
+        first_date + datetime.timedelta(days=d)
+        for d in range((before_date - first_date).days + 1)
+    }
+    all_dates_in_years = {
+        date for date in all_dates
+        if date.year in years
+    }
+    missing_dates = list(all_dates_in_years - filtered_dates)
+    missing_dates.sort()
+    return missing_dates
+
+
 # WARNING: This function is doing too many things
 def fetch_missing_chirps_files(
     years:list[int],
@@ -223,6 +248,7 @@ def fetch_missing_chirps_files(
     njobs:int = mp.cpu_count() - 2,
     overwrite:bool = False,
     tif_filepath_col:str = COL_TIF_FILEPATH,
+    before_date:datetime.datetime = None,
 ):
     VALID_PRODUCTS = [chcfetch.Products.CHIRPS.P05, chcfetch.Products.CHIRPS.PRELIM]
     if product not in VALID_PRODUCTS:
@@ -262,13 +288,30 @@ def fetch_missing_chirps_files(
     else:
         valid_downloads_df = chc_chirps_catalogue_df
 
+    if before_date is None:
+        before_date = datetime.datetime.today()
 
-    print(f"Querying CHC for {product} CHIRPS files for years={years}")
-    chc_fetch_paths_df = chcfetch.query_chirps_v2_global_daily(
-        product = product,
+    first_date = {
+        'p05': CHIRPS_P05_FIRST_DATE,
+        'prelim': CHIRPS_PRELIM_FIRST_DATE,
+    }[product]
+    missing_dates = get_missing_dates(
+        dates = valid_downloads_df[COL_DATE],
         years = years,
-        njobs = njobs,
+        first_date = first_date,
+        before_date = before_date,
     )
+    if len(missing_dates) > 0:
+        missing_years = {date.year for date in missing_dates}
+        missing_years.sort()
+
+    if len(missing_years) > 0:
+        print(f"Querying CHC for {product} CHIRPS files for missing years={missing_years}")
+        chc_fetch_paths_df = chcfetch.query_chirps_v2_global_daily(
+            product = product,
+            years = missing_years,
+            njobs = njobs,
+        )
 
     chc_fetch_paths_df = chc_fetch_paths_df.apply(add_year_day_from_date, axis=1)
     chc_fetch_paths_df[COL_SOURCE] = SOURCE_CHC

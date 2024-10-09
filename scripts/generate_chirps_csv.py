@@ -4,6 +4,7 @@ import time
 import argparse
 import shutil
 import os
+import datetime
 
 import sys
 sys.path.append('..')
@@ -76,6 +77,11 @@ if __name__ == '__main__':
     )
 
     DEFAULT_NJOBS = min(mp.cpu_count() - 2, 16)
+
+    # last available files as of 2024-10-09
+    DEFAULT_BEFORE_DATE_PRELIM = '2024-10-05'
+    DEFAULT_BEFORE_DATE_P05 = '2024-08-31'
+    
     VALID_PRODUCTS = [fmcf.chcfetch.Products.CHIRPS.P05, 
                       fmcf.chcfetch.Products.CHIRPS.PRELIM]
     VALID_AGGREGATION = list(rtcm.AGGREGATION_DICT.keys())
@@ -89,6 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--geoglam-folderpath', required=False, default=None, action='store', help=f"[path/to/geoglam | default] Folderpath where GEOGLAM data is stored. Files present in the GEOGLAM folder will not be re-downloaded.")
     parser.add_argument('-a', '--aggregation', action='store', default='mean', required=False, help=f'[default = mean] Aggregation method to reduce CHIRPS values for a given region to a single value. Options: {VALID_AGGREGATION}.')
     parser.add_argument('-j', '--njobs', action='store', default=DEFAULT_NJOBS, required=False, help=f'[default = {DEFAULT_NJOBS}] Number of cores to use for parallel downloads and computation.')
+    parser.add_argument('-b', '--before', metavar='DATE_BEFORE', action='store', required=False, help=f'[default = {DEFAULT_BEFORE_DATE_PRELIM} for prelim | {DEFAULT_BEFORE_DATE_P05} for p05] Date upto which to query the files for. This is to avoid FTP requests provided files before the given date is already present. Options: [YYYY-MM-DD | today]')
 
     args = parser.parse_args()
 
@@ -98,7 +105,7 @@ if __name__ == '__main__':
     start_year = int(args.start_year)
     end_year = int(args.end_year)
     export_filepath = args.export_filepath
-    product = str(args.product).lower() # not used yet
+    product = str(args.product).lower()
     
     if product not in VALID_PRODUCTS:
         raise ValueError(f'Invalid product. Must be from {VALID_PRODUCTS}.')
@@ -108,6 +115,17 @@ if __name__ == '__main__':
             'p05': config.FOLDERPATH_DOWNLOAD_CHC_CHIRPS_P05,
             'prelim': config.FOLDERPATH_DOWNLOAD_CHC_CHIRPS_PRELIM,
         }[product]
+
+    if args.before is None:
+        before_date = {
+            'p05': DEFAULT_BEFORE_DATE_P05,
+            'prelim': DEFAULT_BEFORE_DATE_PRELIM,
+        }[product]
+        before_date = datetime.datetime.strptime(before_date, '%Y-%m-%d')
+    elif str(args.before).lower() == 'today':
+        before_date = datetime.datetime.today()
+    else:
+        before_date = datetime.datetime.strptime(str(args.before), '%Y-%m-%d')
     
     geoglam_chirps_folderpath = args.geoglam_folderpath
     if geoglam_chirps_folderpath is not None:
@@ -139,6 +157,7 @@ if __name__ == '__main__':
         geoglam_chirps_data_folderpath = geoglam_chirps_folderpath,
         chc_chirps_download_folderpath = chirps_download_folderpath,
         njobs = njobs,
+        before_date = before_date,
     )
     
     reference_tif_filepath = None
