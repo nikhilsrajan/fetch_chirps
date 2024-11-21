@@ -5,6 +5,7 @@ import argparse
 import shutil
 import os
 import datetime
+import warnings
 
 import sys
 sys.path.append('..')
@@ -13,26 +14,6 @@ import config
 import chcfetch.constants
 import fetch_missing_chirps_files as fmcf
 import read_tifs_create_met as rtcm
-
-
-def parse_args():
-    roi_shapefile = sys.argv[1]
-    start_year = int(sys.argv[2])
-    end_year = int(sys.argv[3])
-    geoglam_chirps_data_folderpath = sys.argv[4]
-    chc_chirps_v2_0_p05_download_folderpath = sys.argv[5]
-    reference_tif_filepath = sys.argv[6]
-    aggregation = sys.argv[7]
-    njobs = int(sys.argv[8])
-    export_filepath = sys.argv[9]
-    working_folderpath = sys.argv[10]
-
-    return roi_shapefile, start_year, end_year, \
-        geoglam_chirps_data_folderpath, \
-        chc_chirps_v2_0_p05_download_folderpath, \
-        reference_tif_filepath, \
-        aggregation, njobs, export_filepath, \
-        working_folderpath
 
 
 def check_if_any_geom_within_chirps_bounds(
@@ -52,58 +33,40 @@ def check_if_any_geom_within_chirps_bounds(
 
 
 if __name__ == '__main__':
-    """
-    args:
-    - roi_shapefile
-    - start_year
-    - end_year
-    - geoglam_chirps_folderpath
-    - chc_chirps_download_folderpath
-    - reference_tif_filepath
-    - aggregation
-    - njobs
-    - export_filepath
-    - working_folderpath
-    """
-
     parser = argparse.ArgumentParser(
         prog = 'python generate_chirps_csv.py',
         description = (
             'Script to generate a csv for chirps data for a given shapefile, '
-            'start_year, and end_year. start_year and end_year both are included '
+            'start_date, and end_date. start_date and end_date both are included '
             'in the query.'
         ),
         epilog = f"--- Send your complaints to {','.join(config.MAINTAINERS)} ---",
     )
 
     DEFAULT_NJOBS = min(mp.cpu_count() - 2, 16)
-
-    # last available files as of 2024-10-09
-    DEFAULT_BEFORE_DATE_PRELIM = '2024-10-05'
-    DEFAULT_BEFORE_DATE_P05 = '2024-08-31'
     
     VALID_PRODUCTS = [fmcf.chcfetch.Products.CHIRPS.P05, 
                       fmcf.chcfetch.Products.CHIRPS.PRELIM]
     VALID_AGGREGATION = list(rtcm.AGGREGATION_DICT.keys())
 
     parser.add_argument('roi_filepath', action='store', help='Path to the shapefile.')
-    parser.add_argument('start_year', action='store', help=f'Start year for fetching the CHIRPS data. Format: YYYY')
-    parser.add_argument('end_year', action='store', help=f'End year for fetching the CHIRPS data. Format: YYYY')
+    parser.add_argument('start_date', action='store', help=f'Start date for querying the CHIRPS data. Format: YYYY-MM-DD')
+    parser.add_argument('end_date', action='store', help=f'End date for querying the CHIRPS data. Format: YYYY-MM-DD')
     parser.add_argument('export_filepath', action='store', help='Filepath where the output csv is to be stored.')
     parser.add_argument('-p', '--product', action='store', default='p05', required=False, help=f'[default = p05] CHIRPS product to be fetched. Options: {VALID_PRODUCTS}.')
     parser.add_argument('-d', '--download_folderpath', action='store', required=False, default=None, help=f"[default = {config.FOLDERPATH_DOWNLOAD_CHC_CHIRPS + 'PRODUCT/'}] Path to the folder where files will be downloaded to.")
-    parser.add_argument('-g', '--geoglam-folderpath', required=False, default=None, action='store', help=f"[path/to/geoglam | default] Folderpath where GEOGLAM data is stored. Files present in the GEOGLAM folder will not be re-downloaded.")
     parser.add_argument('-a', '--aggregation', action='store', default='mean', required=False, help=f'[default = mean] Aggregation method to reduce CHIRPS values for a given region to a single value. Options: {VALID_AGGREGATION}.')
     parser.add_argument('-j', '--njobs', action='store', default=DEFAULT_NJOBS, required=False, help=f'[default = {DEFAULT_NJOBS}] Number of cores to use for parallel downloads and computation.')
-    parser.add_argument('-b', '--before', metavar='DATE_BEFORE', action='store', default=None, required=False, help=f'[default = {DEFAULT_BEFORE_DATE_PRELIM} for prelim | {DEFAULT_BEFORE_DATE_P05} for p05] Date upto which to query the files for. This is to avoid FTP requests provided files before the given date is already present. Options: [YYYY-MM-DD | today]')
-
+    parser.add_argument('--ignore-missing-dates', action='store_true', help=f'If there are missing dates for requested date range, this option ignores the error and proceeds, except when there are no files present.')
+    parser.add_argument('--warn-missing-dates', action='store_true', help=f'If there are missing dates for requested date range, this option raises a warning and proceeds, except when there are no files present.')
+    
     args = parser.parse_args()
 
     start_time = time.time()
 
     roi_filepath = args.roi_filepath
-    start_year = int(args.start_year)
-    end_year = int(args.end_year)
+    start_date = datetime.datetime.strptime(str(args.start_date), '%Y-%m-%d')
+    end_date = datetime.datetime.strptime(str(args.end_date), '%Y-%m-%d')
     export_filepath = args.export_filepath
     product = str(args.product).lower()
     
@@ -116,26 +79,6 @@ if __name__ == '__main__':
             'prelim': config.FOLDERPATH_DOWNLOAD_CHC_CHIRPS_PRELIM,
         }[product]
 
-    if args.before is None:
-        before_date = {
-            'p05': DEFAULT_BEFORE_DATE_P05,
-            'prelim': DEFAULT_BEFORE_DATE_PRELIM,
-        }[product]
-        before_date = datetime.datetime.strptime(before_date, '%Y-%m-%d')
-    elif str(args.before).lower() == 'today':
-        before_date = datetime.datetime.today()
-    else:
-        before_date = datetime.datetime.strptime(str(args.before), '%Y-%m-%d')
-    
-    geoglam_chirps_folderpath = args.geoglam_folderpath
-    if geoglam_chirps_folderpath is not None:
-        geoglam_chirps_folderpath = str(geoglam_chirps_folderpath)
-        if geoglam_chirps_folderpath.lower() == 'default' and product == 'p05':
-            geoglam_chirps_folderpath = config.FOLDERPATH_GEOGLAM_CHIRPS_GLOBAL
-        if geoglam_chirps_folderpath.lower() == 'default' and product == 'prelim':
-            print('Warning: No default GEOGLAM folderpath set for product=prelim. Reverting to None.')
-            geoglam_chirps_folderpath = None
-
     aggregation = str(args.aggregation).lower()
     if aggregation not in VALID_AGGREGATION:
         raise ValueError(f'Invalid aggregation. Must be from {VALID_AGGREGATION}.')
@@ -144,58 +87,57 @@ if __name__ == '__main__':
     if njobs <= 0:
         njobs = mp.cpu_count() - 2
 
+
+    if_missing_dates = 'raise'
+    if args.ignore_missing_dates:
+        if_missing_dates = 'ignore'
+    if args.warn_missing_dates:
+        if_missing_dates = 'warn'
+
     working_folderpath = config.FOLDERPATH_TEMP
 
     shapes_gdf = gpd.read_file(roi_filepath)
-    years = list(range(start_year, end_year + 1))
 
     VAL_COL = f'{aggregation} CHIRPS'
 
-
     print("--- inputs ---")
     print(f"roi_filepath: {roi_filepath}")
-    print(f"start_year: {start_year}")
-    print(f"end_year: {end_year}")
+    print(f"start_date: {start_date.strftime('%Y-%m-%d')}")
+    print(f"end_date: {end_date.strftime('%Y-%m-%d')}")
     print(f"export_filepath: {export_filepath}")
     print(f"product: {product}")
     print(f"download_folderpath: {chirps_download_folderpath}")
-    print(f"before_date: {before_date.strftime('%Y-%m-%d')}")
-    if geoglam_chirps_folderpath is not None:
-        print(f"geoglam_chirps_folderpath: {geoglam_chirps_folderpath}")
     print(f"aggregation: {aggregation}")
     print(f"njobs: {njobs}")
+    print(f"if_missing_dates: {if_missing_dates}")
     
     print("--- run ---")
 
-    catalogue_df = fmcf.fetch_missing_chirps_files(
-        years = years,
-        product = product,
-        geoglam_chirps_data_folderpath = geoglam_chirps_folderpath,
-        chc_chirps_download_folderpath = chirps_download_folderpath,
-        njobs = njobs,
-        before_date = before_date,
+    catalogue_df = fmcf.generate_chc_chirps_catalogue_df(
+        folderpath = chirps_download_folderpath,
     )
+
+    catalogue_df = catalogue_df[
+        (catalogue_df[fmcf.COL_DATE] >= start_date) &
+        (catalogue_df[fmcf.COL_DATE] <= end_date)
+    ]
+
+    total_days_expected = (end_date - start_date).days
+    missing_dates_count = total_days_expected - catalogue_df.shape[0]
+    if missing_dates_count > 0:
+        if if_missing_dates == 'raise':
+            raise ValueError(f'{missing_dates_count} dates missing.')
+        if if_missing_dates == 'warn':
+            warnings.warn(message = f'{missing_dates_count} dates missing.',
+                          category = RuntimeWarning)
     
-    reference_tif_filepath = None
-    geoglam_catalogue_df = catalogue_df[catalogue_df[fmcf.COL_SOURCE] == fmcf.SOURCE_GEOGLAM]
-
-    if geoglam_catalogue_df.shape[0] > 0:
-        reference_tif_filepath = geoglam_catalogue_df[fmcf.COL_TIF_FILEPATH].tolist()[0]
-
     catalogue_df[rtcm.COL_METHOD] = rtcm.LoadTIFMethod.READ_AND_CROP
-    if reference_tif_filepath is not None:
-        catalogue_df.loc[
-            catalogue_df[fmcf.COL_FILETYPE] == fmcf.EXT_TIF_GZ,
-            rtcm.COL_METHOD
-        ] = rtcm.LoadTIFMethod.COREGISTER_AND_CROP
-
 
     print('Reading tifs and generating csv')
     updated_catalogue_df = rtcm.read_tifs_get_agg_value(
         shapes_gdf = shapes_gdf,
         catalogue_df = catalogue_df,
         val_col = VAL_COL,
-        reference_tif_filepath = reference_tif_filepath,
         aggregation = aggregation,
         njobs = njobs,
         working_folderpath = working_folderpath,

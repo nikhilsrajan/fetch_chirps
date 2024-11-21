@@ -123,7 +123,6 @@ def generate_geoglam_chirps_catalogue_df(
 
 def generate_chc_chirps_catalogue_df(
     folderpath:str,
-    years:list[int],
     tif_filepath_col:str = COL_TIF_FILEPATH,
 ):
     catalogue_df = create_catalogue_df(
@@ -148,9 +147,6 @@ def generate_chc_chirps_catalogue_df(
                 + datetime.timedelta(days=row[COL_DAY] - 1),
             axis=1
         )
-
-        catalogue_df = \
-        catalogue_df[catalogue_df[COL_YEAR].isin(years)]
 
         catalogue_df[COL_MULTIPLIER] = 1 # from source so no multiplier
         catalogue_df[COL_SOURCE] = SOURCE_CHC
@@ -248,7 +244,6 @@ def fetch_missing_chirps_files(
     years:list[int],
     product:str,
     chc_chirps_download_folderpath:str,
-    geoglam_chirps_data_folderpath:str = None,
     njobs:int = mp.cpu_count() - 2,
     overwrite:bool = False,
     tif_filepath_col:str = COL_TIF_FILEPATH,
@@ -263,34 +258,11 @@ def fetch_missing_chirps_files(
     chc_chirps_catalogue_df = generate_chc_chirps_catalogue_df(
         folderpath = chc_chirps_download_folderpath,
         tif_filepath_col = tif_filepath_col,
-        years = years,
     )
 
-    geoglam_folderpath_provided = geoglam_chirps_data_folderpath is not None
+    catalogue_df = catalogue_df[catalogue_df[COL_YEAR].isin(years)]
 
-    if geoglam_folderpath_provided:
-        geoglam_chirps_catalogue_df = generate_geoglam_chirps_catalogue_df(
-            folderpath = geoglam_chirps_data_folderpath,
-            tif_filepath_col = tif_filepath_col,
-            years = years,
-        )
-        print('Checking how many files in the local CHIRPS catalogue are corrupted.')
-        geoglam_chirps_catalogue_df = add_tif_corruption_cols(
-            catalogue_df = geoglam_chirps_catalogue_df,
-        )
-        n_corrupted = geoglam_chirps_catalogue_df[COL_IS_CORRUPTED].sum()
-        print(f'Number of corrupted tifs: {n_corrupted}')
-
-
-    if geoglam_folderpath_provided and geoglam_chirps_catalogue_df.shape[0] > 0:
-        valid_downloads_df = geoglam_chirps_catalogue_df[~geoglam_chirps_catalogue_df[COL_IS_CORRUPTED]]
-
-        valid_downloads_df = pd.concat([
-            valid_downloads_df, chc_chirps_catalogue_df
-        ]).reset_index(drop=True)
-
-    else:
-        valid_downloads_df = chc_chirps_catalogue_df
+    valid_downloads_df = chc_chirps_catalogue_df
 
     if before_date is None:
         before_date = datetime.datetime.today()
