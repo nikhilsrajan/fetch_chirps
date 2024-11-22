@@ -60,6 +60,6 @@ if __name__ == '__main__':
         _nasapower_df['PRECTOTCORR'] = chirps_df.loc[_nasapower_df.index, 'mean CHIRPS']
         _nasapower_df['PRECTOTCORR'] = chirps_df.loc[_nasapower_df.index, 'mean CHIRPS']
 
-        _nasapower_df.to_file(_nasapower_filepath)
+        _nasapower_df.to_csv(_nasapower_filepath)
 
         del _nasapower_filepath, chirps_df
