@@ -112,9 +112,14 @@ def load_tif(
     return out_image, out_meta
 
 
+def get_centre_value(ndarray:np.ndarray):
+    return np.take(ndarray, ndarray.size // 2)
+
+
 AGGREGATION_DICT = {
-    'mean': np.mean,
-    'median': np.median,
+    'mean': np.nanmean,
+    'median': np.nanmedian,
+    'centre': get_centre_value
 }
 
 
@@ -149,6 +154,9 @@ def read_tif_get_agg_value(
     )
 
     out_image = out_image * multiplier
+
+    # CHIRPS NODATA value = -9999
+    out_image[out_image == -9999] = np.nan
 
     value = aggregation_func(out_image)
 
