@@ -207,6 +207,13 @@ def read_tifs_get_agg_value(
 
     updated_catalogue_df = catalogue_df.copy(deep=True)
 
+    if aggregation == 'centre':
+        """
+        - alter the geometry to a box [DONE]
+        - get the centroid pixel coordinate [TO DO]
+        """
+        shapes_gdf['geometry'] = shapes_gdf.envelope
+
     read_tif_get_agg_value_by_tuple_partial = functools.partial(
         read_tif_get_agg_value_by_tuple,
         shapes_gdf = shapes_gdf,
