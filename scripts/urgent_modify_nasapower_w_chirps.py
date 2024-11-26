@@ -21,11 +21,13 @@ if __name__ == '__main__':
     
     parser.add_argument('raion_chirps_folderpath', action='store', help='Folderpath to CHIRPS files.')
     parser.add_argument('vercye_output_folderpath', action='store', help='Folderpath to VeRCYe output root where _nasapower.csv files are present.')
-
+    parser.add_argument('aggregation', action='store', help="options: ['mean', 'median', 'centre']")
+    
     args = parser.parse_args()
 
     raion_chirps_folderpath = str(args.raion_chirps_folderpath)
     vercye_output_folderpath = str(args.vercye_output_folderpath)
+    aggregation = str(args.aggregation)
 
     if not os.path.exists(raion_chirps_folderpath):
         raise ValueError(f'Raion CHIRPS folder not found: {raion_chirps_folderpath}')
@@ -57,8 +59,8 @@ if __name__ == '__main__':
         chirps_df = pd.read_csv(raion_chirps_filepath_dict[raion_name], index_col='date')
 
         _nasapower_df = _nasapower_df.rename(columns={'PRECTOTCORR' : 'previous PRECTOTCORR'})
-        _nasapower_df['PRECTOTCORR'] = chirps_df.loc[_nasapower_df.index, 'mean CHIRPS']
-        _nasapower_df['PRECTOTCORR'] = chirps_df.loc[_nasapower_df.index, 'mean CHIRPS']
+        _nasapower_df['PRECTOTCORR'] = chirps_df.loc[_nasapower_df.index, f'{aggregation} CHIRPS']
+        _nasapower_df['PRECTOTCORR'] = chirps_df.loc[_nasapower_df.index, f'{aggregation} CHIRPS']
 
         _nasapower_df.to_csv(_nasapower_filepath)
 
